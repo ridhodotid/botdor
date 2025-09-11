@@ -1320,7 +1320,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /start is issued."""
     user = update.effective_user
     
-    message = f"👋 Hi {user.first_name}! Welcome to DoyDor XL Bot.\n\n"
+    message = f"👋 Hi {user.first_name}! Welcome to BotDor XL Bot.\n\n"
     message += "I can help you manage your XL account right from Telegram!\n\n"
     
     # Check if user is already logged in
@@ -2822,7 +2822,7 @@ async def show_donation_info(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /help is issued."""
-    message = "ℹ️ *DoyDor XL Bot Help*\n\n"
+    message = "ℹ️ *BotDor XL Bot Help*\n\n"
     message += "I can help you manage your XL account directly from Telegram!\n\n"
     message += "📱 *Available Commands:*\n"
     message += "/start - Start the bot\n"
@@ -3005,3 +3005,4 @@ def main() -> None:
 if __name__ == "__main__":
     # Start the bot
     main()
+
