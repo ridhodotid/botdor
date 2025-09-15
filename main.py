@@ -6,7 +6,7 @@ import time
 import base64
 import sqlite3
 from datetime import datetime, timezone, timedelta
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes, ConversationHandler
 from dotenv import load_dotenv
 import qrcode
@@ -1320,8 +1320,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /start is issued."""
     user = update.effective_user
     
-    message = f"👋 Hi {user.first_name}! Welcome to EnryuuDor XL Bot.\n\n"
-    message += "This bot can help you manage your XL account right from Telegram!\n\n"
+    message = f"👋 Hi {user.first_name}! Welcome to DoyDor XL Bot.\n\n"
+    message += "I can help you manage your XL account right from Telegram!\n\n"
     
     # Check if user is already logged in
     active_user = auth_instance.get_active_user(context)
@@ -1333,25 +1333,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         message += "Use /login to start using the bot."
         
         keyboard = [
-            [InlineKeyboardButton("📱 Login", callback_data="login")],
+            [KeyboardButton("📱 Login")],
+            [KeyboardButton("🌐 Buy VPN"), KeyboardButton("💝 Donate")],
+            [KeyboardButton("ℹ️ Help")]
         ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
+        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
         
         await update.message.reply_text(message, reply_markup=reply_markup)
 
 async def login_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Start the login process."""
-    # Check if this is a callback query or a regular message
-    if update.callback_query:
-        query = update.callback_query
-        await query.answer()
-        user = query.from_user
-        message = query.message
-    else:
-        user = update.effective_user
-        message = update.message
-    
     # Save user ID to database when they initiate login
+    user = update.effective_user
     is_new_user = False
     
     try:
@@ -1386,15 +1379,9 @@ async def login_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         except Exception as e:
             logger.error("Error sending new user notification to group: %s", e)
     
-    # Reply to the appropriate message
-    if update.callback_query:
-        await update.callback_query.edit_message_text(
-            "📞 Please enter your XL number (e.g., 6281234567890):"
-        )
-    else:
-        await update.message.reply_text(
-            "📞 Please enter your XL number (e.g., 6281234567890):"
-        )
+    await update.message.reply_text(
+        "📞 Please enter your XL number (e.g., 6281234567890):"
+    )
     return PHONE
 
 async def phone_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -1504,11 +1491,13 @@ async def otp_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Display main menu."""
     keyboard = [
-        [InlineKeyboardButton("📦 My Packages", callback_data="my_packages")],
-        [InlineKeyboardButton("🛒 Buy Packages", callback_data="buy_packages")],
-        [InlineKeyboardButton("🚪 Logout", callback_data="logout")]
+        [KeyboardButton("💰 Account Info")],
+        [KeyboardButton("📦 My Packages")],
+        [KeyboardButton("🛒 Buy Packages")],
+        [KeyboardButton("🌐 Buy VPN"), KeyboardButton("💝 Donate")],
+        [KeyboardButton("🚪 Logout")]
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     
     # Get user info
     user = auth_instance.get_active_user(context)
@@ -1533,53 +1522,37 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 message = "📱 *Account Information*\n"
                 message += f"🔢 Number: `{user['number']}`\n"
                 message += f"💸 Balance: `Rp {balance_remaining:,}`\n"
-                message += f"📅 Active Until: `{expired_at_dt}`\n"
+                message += f"📅 Active Until: `{expired_at_dt}`\n\n"
                 message += "📋 *Please select an option:*"
             else:
                 # Even if balance data is not available, still show the menu
                 message = f"📱 *Account Information*\n"
                 message += f"✅ Logged in as: `{user['number']}`\n"
-                message += "⚠️ Unable to fetch balance information. Please try again later.\n"
+                message += "⚠️ Unable to fetch balance information. Please try again later.\n\n"
                 message += "📋 *Please select an option:*"
         except ValueError as e:
             # Handle rate limit errors specifically
             error_msg = str(e)
             if "too many requests" in error_msg.lower():
-                message = f"📱 *Account Information*\
-"
-                message += f"✅ Logged in as: `{user['number']}`\
-"
-                message += "⏰ Rate limit reached. Please wait a moment and try again.\
-\
-"
+                message = f"📱 *Account Information*\n"
+                message += f"✅ Logged in as: `{user['number']}`\n"
+                message += "⏰ Rate limit reached. Please wait a moment and try again.\n\n"
                 message += "📋 *Please select an option:*"
             else:
-                message = f"📱 *Account Information*\
-"
-                message += f"✅ Logged in as: `{user['number']}`\
-"
-                message += "⚠️ Error fetching account information\
-\
-"
+                message = f"📱 *Account Information*\n"
+                message += f"✅ Logged in as: `{user['number']}`\n"
+                message += "⚠️ Error fetching account information\n\n"
                 message += "📋 *Please select an option:*"
         except Exception as e:
             logger.error("Error fetching account info: %s", e, exc_info=True)
-            message = f"📱 *Account Information*\
-"
-            message += f"✅ Logged in as: `{user['number']}`\
-"
-            message += "⚠️ Error fetching account information\
-\
-"
+            message = f"📱 *Account Information*\n"
+            message += f"✅ Logged in as: `{user['number']}`\n"
+            message += "⚠️ Error fetching account information\n\n"
             message += "📋 *Please select an option:*"
     else:
         message = "📋 *Please select an option:*"
     
-    # Check if this is a callback query or regular message
-    if update.callback_query:
-        await update.callback_query.edit_message_text(message, reply_markup=reply_markup, parse_mode='Markdown')
-    else:
-        await update.message.reply_text(message, reply_markup=reply_markup, parse_mode='Markdown')
+    await update.message.reply_text(message, reply_markup=reply_markup, parse_mode='Markdown')
 
 async def handle_menu_selection(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle menu selections."""
@@ -1600,13 +1573,6 @@ async def handle_menu_selection(update: Update, context: ContextTypes.DEFAULT_TY
         class MockQuery:
             def __init__(self, message):
                 self.message = message
-                
-            async def edit_message_text(self, text, reply_markup=None, parse_mode=None):
-                # For mock queries, we'll send a new message instead of editing
-                if reply_markup or parse_mode:
-                    await self.message.reply_text(text, reply_markup=reply_markup, parse_mode=parse_mode)
-                else:
-                    await self.message.reply_text(text)
                 
         mock_query = MockQuery(update.message)
         if is_enterprise:
@@ -1636,22 +1602,31 @@ async def handle_menu_selection(update: Update, context: ContextTypes.DEFAULT_TY
             await update.message.reply_text("❌ Invalid input. Please enter a valid number.")
             return
     
-    # For inline keyboard buttons, we don't need to handle text messages
-    # The callback query handler will handle all button presses
-    # Only handle non-button text messages here
-    if not text.startswith("/") and not text.startswith("💰") and not text.startswith("📦") and not text.startswith("🛒") and not text.startswith("🚪") and not text.startswith("📱") and not text.startswith("ℹ️"):
-        await update.message.reply_text("❓ Unknown command. Please use the menu buttons or commands.")
+    if text == "💰 Account Info":
+        await show_account_info(update, context)
+    elif text == "📦 My Packages":
+        await show_my_packages(update, context)
+    elif text == "🛒 Buy Packages":
+        await show_buy_packages_menu(update, context)
+    elif text == "🌐 Buy VPN":
+        await show_vpn_info(update, context)
+    elif text == "💝 Donate":
+        await show_donation_info(update, context)
+    elif text == "🚪 Logout":
+        await logout(update, context)
+    elif text == "📱 Login":
+        await login_start(update, context)
+    elif text == "ℹ️ Help":
+        await help_command(update, context)
+    else:
+        await update.message.reply_text("❓ Unknown option. Please use the menu buttons.")
 
 async def show_account_info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Show account information."""
     global api_key
     user = auth_instance.get_active_user(context)
     if not user:
-        # Check if this is a callback query or regular message
-        if update.callback_query:
-            await update.callback_query.edit_message_text("❌ No active user found. Please login first.")
-        else:
-            await update.message.reply_text("❌ No active user found. Please login first.")
+        await update.message.reply_text("❌ No active user found. Please login first.")
         return
         
     try:
@@ -1677,65 +1652,35 @@ async def show_account_info(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         else:
             message = f"📱 *Account Information*\n🔢 Number: `{user['number']}`\n⚠️ Unable to fetch balance information. Please try again later."
             
-        # Check if this is a callback query or regular message
-        if update.callback_query:
-            await update.callback_query.edit_message_text(message, parse_mode='Markdown')
-        else:
-            await update.message.reply_text(message, parse_mode='Markdown')
+        await update.message.reply_text(message, parse_mode='Markdown')
     except ValueError as e:
         # Handle rate limit errors specifically
         error_msg = str(e)
         if "too many requests" in error_msg.lower():
-            response_text = "⏰ Rate limit reached. Please wait a moment and try again."
+            await update.message.reply_text("⏰ Rate limit reached. Please wait a moment and try again.")
         else:
             logger.error("Error fetching account info: %s", e, exc_info=True)
-            response_text = "❌ Error fetching account information."
-        
-        # Check if this is a callback query or regular message
-        if update.callback_query:
-            await update.callback_query.edit_message_text(response_text)
-        else:
-            await update.message.reply_text(response_text)
+            await update.message.reply_text("❌ Error fetching account information.")
     except Exception as e:
         logger.error("Error fetching account info: %s", e, exc_info=True)
-        response_text = "❌ Error fetching account information."
-        
-        # Check if this is a callback query or regular message
-        if update.callback_query:
-            await update.callback_query.edit_message_text(response_text)
-        else:
-            await update.message.reply_text(response_text)
+        await update.message.reply_text("❌ Error fetching account information.")
 
 async def show_my_packages(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Show user's packages."""
     global api_key
     user = auth_instance.get_active_user(context)
     if not user:
-        # Check if this is a callback query or regular message
-        if update.callback_query:
-            await update.callback_query.edit_message_text("❌ No active user found. Please login first.")
-        else:
-            await update.message.reply_text("❌ No active user found. Please login first.")
+        await update.message.reply_text("❌ No active user found. Please login first.")
         return
-            
-        keyboard = [
-            [InlineKeyboardButton("🔙 Back", callback_data="main_menu")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)   
-
+    
     try:
         quotas = fetch_my_packages(api_key, user["tokens"])
         if not quotas:
-            response_text = "❌ Failed to fetch your packages."
-            # Check if this is a callback query or regular message
-            if update.callback_query:
-                await update.callback_query.edit_message_text(response_text)
-            else:
-                await update.message.reply_text(response_text)
+            await update.message.reply_text("❌ Failed to fetch your packages.")
             return
-
+            
         message = "📦 *My Packages*\n\n"
-
+        
         num = 1
         for quota in quotas:
             quota_code = quota["quota_code"]
@@ -1796,12 +1741,7 @@ async def show_my_packages(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 # Handle rate limit errors
                 error_msg = str(e)
                 if "too many requests" in error_msg.lower():
-                    response_text = "⏰ Too many requests. Please wait a moment and try again."
-                    # Check if this is a callback query or regular message
-                    if update.callback_query:
-                        await update.callback_query.edit_message_text(response_text)
-                    else:
-                        await update.message.reply_text(response_text)
+                    await update.message.reply_text("⏰ Too many requests. Please wait a moment and try again.")
                     return
                 else:
                     logger.error("Error fetching package details: %s", e, exc_info=True)
@@ -1813,49 +1753,28 @@ async def show_my_packages(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 message += f"*Package {num}*\n"
                 message += f"🏷️ Name: `{name}`\n"
                 message += "➖➖➖➖➖\n"
-
+            
             num += 1
-                # Add back button
         
-        # Check if this is a callback query or regular message
-        if update.callback_query:
-            await update.callback_query.edit_message_text(message, parse_mode='Markdown')
-        else:
-            await update.message.reply_text(message, parse_mode='Markdown')
+        await update.message.reply_text(message, parse_mode='Markdown')
     except ValueError as e:
         # Handle rate limit errors
         error_msg = str(e)
         if "too many requests" in error_msg.lower():
-            response_text = "⏰ Too many requests. Please wait a moment and try again."
+            await update.message.reply_text("⏰ Too many requests. Please wait a moment and try again.")
         else:
             logger.error("Error fetching my packages: %s", e, exc_info=True)
-            response_text = "❌ Error fetching your packages."
-        
-        # Check if this is a callback query or regular message
-        if update.callback_query:
-            await update.callback_query.edit_message_text(response_text)
-        else:
-            await update.message.reply_text(response_text)
+            await update.message.reply_text("❌ Error fetching your packages.")
     except Exception as e:
         logger.error("Error fetching my packages: %s", e, exc_info=True)
-        response_text = "❌ Error fetching your packages."
-        
-        # Check if this is a callback query or regular message
-        if update.callback_query:
-            await update.callback_query.edit_message_text(response_text)
-        else:
-            await update.message.reply_text(response_text)
+        await update.message.reply_text("❌ Error fetching your packages.")
 
 async def show_buy_packages_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Show buy packages menu."""
     # Check if user is logged in
     user = auth_instance.get_active_user(context)
     if not user:
-        # Check if this is a callback query or regular message
-        if update.callback_query:
-            await update.callback_query.edit_message_text("❌ Please login first to buy packages.")
-        else:
-            await update.message.reply_text("❌ Please login first to buy packages.")
+        await update.message.reply_text("❌ Please login first to buy packages.")
         return
     
     keyboard = [
@@ -1865,51 +1784,29 @@ async def show_buy_packages_menu(update: Update, context: ContextTypes.DEFAULT_T
         [InlineKeyboardButton("🔙 Back", callback_data="main_menu")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-
+    
     message = "🛒 *Buy Packages*\n\n"
     message += "Please select a package category:"
     
-    # Check if this is a callback query or regular message
-    if update.callback_query:
-        await update.callback_query.edit_message_text(message, reply_markup=reply_markup, parse_mode='Markdown')
-    else:
-        await update.message.reply_text(message, reply_markup=reply_markup, parse_mode='Markdown')
+    await update.message.reply_text(message, reply_markup=reply_markup, parse_mode='Markdown')
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle button presses."""
     query = update.callback_query
     await query.answer()
     
-    # Handle main menu inline button selections
-    if query.data == "login":
-        await login_start(update, context)
-        return
-    elif query.data == "account_info":
-        await show_account_info(update, context)
-        return
-    elif query.data == "my_packages":
-        await show_my_packages(update, context)
-        return
-    elif query.data == "buy_packages":
-        await show_buy_packages_menu(update, context)
-        return
-    elif query.data == "logout":
-        await logout(update, context)
-        return
-    
-    # Handle existing callback data
     if query.data == "buy_xut":
         await show_xut_packages(update, context, query)
     elif query.data == "buy_family_code":
         # Ask user for family code
-        await query.edit_message_text("👨‍👩‍👧‍👦 Please enter the Family Code:")
+        await query.message.reply_text("👨‍👩‍👧‍👦 Please enter the Family Code:")
         # Set state to expect family code input
         context.user_data['awaiting_family_code'] = True
         # Set enterprise mode to False
         context.user_data['is_enterprise'] = False
     elif query.data == "buy_family_code_enterprise":
         # Ask user for family code for enterprise packages
-        await query.edit_message_text("🏢 Please enter the Enterprise Family Code:")
+        await query.message.reply_text("🏢 Please enter the Enterprise Family Code:")
         # Set state to expect family code input
         context.user_data['awaiting_family_code'] = True
         # Set enterprise mode to True
@@ -1924,10 +1821,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 package = xut_packages_cache[package_index]
                 await show_package_details(update, context, query, package)
             else:
-                await query.edit_message_text("❌ Package not found. Please try again.")
+                await query.message.reply_text("❌ Package not found. Please try again.")
         except Exception as e:
             logger.error("Error handling package selection: %s", e, exc_info=True)
-            await query.edit_message_text("❌ Error handling package selection. Please try again.")
+            await query.message.reply_text("❌ Error handling package selection. Please try again.")
     elif query.data.startswith("family_pkg_"):
         # Handle family package selection
         try:
@@ -1938,13 +1835,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 package = family_packages_cache[package_index]
                 await show_package_details(update, context, query, package)
             else:
-                await query.edit_message_text("❌ Package not found. Please try again.")
+                await query.message.reply_text("❌ Package not found. Please try again.")
         except requests.RequestException as e:
             logger.error("Network error handling family package selection: %s", e, exc_info=True)
-            await query.edit_message_text("❌ Network error. Please check your connection and try again.")
+            await query.message.reply_text("❌ Network error. Please check your connection and try again.")
         except Exception as e:
             logger.error("Error handling family package selection: %s", e, exc_info=True)
-            await query.edit_message_text("❌ Error handling family package selection. Please try again.")
+            await query.message.reply_text("❌ Error handling family package selection. Please try again.")
     elif query.data.startswith("pay_"):
         # Handle payment method selection
         try:
@@ -1961,10 +1858,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             if package:
                 await process_payment(update, context, query, payment_method, package)
             else:
-                await query.edit_message_text("❌ Package not found. Please try again.")
+                await query.message.reply_text("❌ Package not found. Please try again.")
         except Exception as e:
             logger.error("Error handling payment selection: %s", e, exc_info=True)
-            await query.edit_message_text("❌ Error handling payment selection. Please try again.")
+            await query.message.reply_text("❌ Error handling payment selection. Please try again.")
     elif query.data == "main_menu":
         # Show main menu
         await show_main_menu_query(update, context, query)
@@ -1972,11 +1869,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 async def show_main_menu_query(update: Update, context: ContextTypes.DEFAULT_TYPE, query) -> None:
     """Display main menu from a callback query."""
     keyboard = [
-        [InlineKeyboardButton("📦 My Packages", callback_data="my_packages")],
-        [InlineKeyboardButton("🛒 Buy Packages", callback_data="buy_packages")],
-        [InlineKeyboardButton("🚪 Logout", callback_data="logout")]
+        [KeyboardButton("💰 Account Info")],
+        [KeyboardButton("📦 My Packages")],
+        [KeyboardButton("🛒 Buy Packages")],
+        [KeyboardButton("🌐 Buy VPN"), KeyboardButton("💝 Donate")],
+        [KeyboardButton("🚪 Logout")]
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     
     # Get user info
     user = auth_instance.get_active_user(context)
@@ -2011,7 +1910,7 @@ async def show_main_menu_query(update: Update, context: ContextTypes.DEFAULT_TYP
     else:
         message = "📋 *Please select an option:*"
     
-    await query.edit_message_text(message, reply_markup=reply_markup, parse_mode='Markdown')
+    await query.message.reply_text(message, reply_markup=reply_markup, parse_mode='Markdown')
 
 def get_package_xut_for_user(context: ContextTypes.DEFAULT_TYPE):
     """Get XUT packages for the current user"""
@@ -2138,13 +2037,13 @@ async def show_xut_packages(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     """Show XUT packages."""
     user = auth_instance.get_active_user(context)
     if not user:
-        await query.edit_message_text("❌ No active user found. Please login first.")
+        await query.message.reply_text("❌ No active user found. Please login first.")
         return
         
     try:
         packages = get_package_xut_for_user(context)
         if not packages:
-            await query.edit_message_text("❌ Failed to fetch XUT packages.")
+            await query.message.reply_text("❌ Failed to fetch XUT packages.")
             return
             
         # Clear and update package cache
@@ -2171,30 +2070,30 @@ async def show_xut_packages(update: Update, context: ContextTypes.DEFAULT_TYPE, 
         message = "🔥 *XUT Packages*\n\n"
         message += "Please select a package to purchase:"
         
-        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode='Markdown')
+        await query.message.reply_text(message, reply_markup=reply_markup, parse_mode='Markdown')
     except ValueError as e:
         # Handle rate limit errors
         error_msg = str(e)
         if "too many requests" in error_msg.lower():
-            await query.edit_message_text("⏰ Too many requests. Please wait a moment and try again.")
+            await query.message.reply_text("⏰ Too many requests. Please wait a moment and try again.")
         else:
             logger.error("Error fetching XUT packages: %s", e, exc_info=True)
-            await query.edit_message_text("❌ Error fetching XUT packages.")
+            await query.message.reply_text("❌ Error fetching XUT packages.")
     except Exception as e:
         logger.error("Error fetching XUT packages: %s", e, exc_info=True)
-        await query.edit_message_text("❌ Error fetching XUT packages.")
+        await query.message.reply_text("❌ Error fetching XUT packages.")
 
 async def show_family_packages(update: Update, context: ContextTypes.DEFAULT_TYPE, query, family_code: str) -> None:
     """Show packages by family code."""
     user = auth_instance.get_active_user(context)
     if not user:
-        await query.edit_message_text("❌ No active user found. Please login first.")
+        await query.message.reply_text("❌ No active user found. Please login first.")
         return
         
     try:
         packages = get_packages_by_family_code_for_user(context, family_code)
         if not packages:
-            await query.edit_message_text("❌ Failed to fetch packages for the provided family code.\n\n"
+            await query.message.reply_text("❌ Failed to fetch packages for the provided family code.\n\n"
                                          "Possible reasons:\n"
                                          "• Invalid family code\n"
                                          "• Family code has expired\n"
@@ -2227,31 +2126,32 @@ async def show_family_packages(update: Update, context: ContextTypes.DEFAULT_TYP
         message = "👨‍👩‍👧‍👦 *Family Packages*\n\n"
         message += "Please select a package to purchase:"
         
-        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode='Markdown')
+        await query.message.reply_text(message, reply_markup=reply_markup, parse_mode='Markdown')
     except ValueError as e:
         # Handle rate limit errors
         error_msg = str(e)
         if "too many requests" in error_msg.lower():
-            await query.edit_message_text("⏰ Too many requests. Please wait a moment and try again.")
+            await query.message.reply_text("⏰ Too many requests. Please wait a moment and try again.")
         else:
             logger.error("Error fetching family packages: %s", e, exc_info=True)
-            await query.edit_message_text("❌ Error fetching family packages.\n\n")
+            await query.message.reply_text("❌ Error fetching family packages.\n\n")
     except Exception as e:
         logger.error("Error fetching family packages: %s", e, exc_info=True)
-        await query.edit_message_text("❌ Error fetching family packages.\n\n")
+        await query.message.reply_text("❌ Error fetching family packages.\n\n")
 
 async def show_enterprise_family_packages(update: Update, context: ContextTypes.DEFAULT_TYPE, query, family_code: str) -> None:
     """Show enterprise packages by family code."""
     user = auth_instance.get_active_user(context)
     if not user:
-        await query.edit_message_text("❌ No active user found. Please login first.")
+        await query.message.reply_text("❌ No active user found. Please login first.")
         return
         
     try:
         # Use the is_enterprise parameter
         packages = get_packages_by_family_code_for_user(context, family_code, is_enterprise=True)
         if not packages:
-            await query.edit_message_text("❌ Failed to fetch enterprise packages for the provided family code.\n\n")
+            await query.message.reply_text("❌ Failed to fetch enterprise packages for the provided family code.\n\n"
+            )
             return
             
         # Clear and update package cache
@@ -2278,24 +2178,24 @@ async def show_enterprise_family_packages(update: Update, context: ContextTypes.
         message = "🏢 *Enterprise Family Packages*\n\n"
         message += "Please select a package to purchase:"
         
-        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode='Markdown')
+        await query.message.reply_text(message, reply_markup=reply_markup, parse_mode='Markdown')
     except ValueError as e:
         # Handle rate limit errors
         error_msg = str(e)
         if "too many requests" in error_msg.lower():
-            await query.edit_message_text("⏰ Too many requests. Please wait a moment and try again.")
+            await query.message.reply_text("⏰ Too many requests. Please wait a moment and try again.")
         else:
             logger.error("Error fetching enterprise family packages: %s", e, exc_info=True)
-            await query.edit_message_text("❌ Error fetching enterprise family packages.\n\n")
+            await query.message.reply_text("❌ Error fetching enterprise family packages.\n\n")
     except Exception as e:
         logger.error("Error fetching enterprise family packages: %s", e, exc_info=True)
-        await query.edit_message_text("❌ Error fetching enterprise family packages.\n\n")
+        await query.message.reply_text("❌ Error fetching enterprise family packages.\n\n")
 
 async def show_package_details(update: Update, context: ContextTypes.DEFAULT_TYPE, query, package) -> None:
     """Show package details with T&C."""
     user = auth_instance.get_active_user(context)
     if not user:
-        await query.edit_message_text("❌ No active user found. Please login first.")
+        await query.message.reply_text("❌ No active user found. Please login first.")
         return
     
     try:
@@ -2303,7 +2203,7 @@ async def show_package_details(update: Update, context: ContextTypes.DEFAULT_TYP
         global api_key
         package_details = get_package(api_key, user["tokens"], package_code)
         if not package_details:
-            await query.edit_message_text("❌ Failed to load package details.")
+            await query.message.reply_text("❌ Failed to load package details.")
             return
             
         # Extract package information
@@ -2340,7 +2240,7 @@ async def show_package_details(update: Update, context: ContextTypes.DEFAULT_TYP
                     break
         
         if package_index is None:
-            await query.edit_message_text("❌ Package not found in cache.")
+            await query.message.reply_text("❌ Package not found in cache.")
             return
         
         # Store package info in context
@@ -2395,24 +2295,24 @@ async def show_package_details(update: Update, context: ContextTypes.DEFAULT_TYP
         message += f"\n📜 *Terms & Conditions:*\n{clean_tnc}\n"
         message += "\n\n💳 *Select Payment Method:*"
         
-        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode='Markdown')
+        await query.message.reply_text(message, reply_markup=reply_markup, parse_mode='Markdown')
     except ValueError as e:
         # Handle rate limit errors
         error_msg = str(e)
         if "too many requests" in error_msg.lower():
-            await query.edit_message_text("⏰ Too many requests. Please wait a moment and try again.")
+            await query.message.reply_text("⏰ Too many requests. Please wait a moment and try again.")
         else:
             logger.error("Error fetching package details: %s", e, exc_info=True)
-            await query.edit_message_text("❌ Error fetching package details.")
+            await query.message.reply_text("❌ Error fetching package details.")
     except Exception as e:
         logger.error("Error fetching package details: %s", e, exc_info=True)
-        await query.edit_message_text("❌ Error fetching package details.")
+        await query.message.reply_text("❌ Error fetching package details.")
 
 async def process_payment(update: Update, context: ContextTypes.DEFAULT_TYPE, query, payment_method, package) -> None:
     """Process package payment."""
     user = auth_instance.get_active_user(context)
     if not user:
-        await query.edit_message_text("❌ No active user found. Please login first.")
+        await query.message.reply_text("❌ No active user found. Please login first.")
         return
     
     try:
@@ -2424,7 +2324,7 @@ async def process_payment(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
         global api_key
         package_details = get_package(api_key, user["tokens"], package_code)
         if not package_details:
-            await query.edit_message_text("❌ Failed to load package details.\n\n"
+            await query.message.reply_text("❌ Failed to load package details.\n\n"
                                          "Possible reasons:\n"
                                          "• Package no longer available\n"
                                          "• Network connectivity issues\n"
@@ -2439,7 +2339,7 @@ async def process_payment(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
             # Check if this is a family package and ask for value input
             if is_family_package(package_code):
                 # Ask user for value input
-                await query.edit_message_text(f"👨‍👩‍👧‍👦 Family Package detected.\n\nPackage price is Rp {price:,}.\nPlease enter the value you want to pay (or press 0 to use the original price):")
+                await query.message.reply_text(f"👨‍👩‍👧‍👦 Family Package detected.\n\nPackage price is Rp {price:,}.\nPlease enter the value you want to pay (or press 0 to use the original price):")
                 # Store package info and payment method in context for later use
                 context.user_data['pending_payment'] = {
                     'package': package,
@@ -2449,7 +2349,7 @@ async def process_payment(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
                 }
                 return
             
-            await query.edit_message_text("💳 Processing payment with balance...")
+            await query.message.reply_text("💳 Processing payment with balance...")
             
             # Actually process the payment
             result = purchase_package_with_balance(
@@ -2466,7 +2366,7 @@ async def process_payment(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
                     f"👤 User: {tg_user.first_name} (@{tg_user.username or 'N/A'})\n"
                     f"🆔 User ID: `{tg_user.id}`\n"
                     f"📱 XL Number: `{user['number']}`\n"
-                    f"🏷️ Package: `{title}`\n"
+                    f"🏷️ Package: `{package_title if package_title else 'Unknown Package'}`\n"
                     f"💰 Price: `Rp {price:,}`\n"
                     f"💳 Method: `Balance`\n"
                     f"🕒 Time: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`"
@@ -2486,7 +2386,7 @@ async def process_payment(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
                     f"👤 User: {tg_user.first_name} (@{tg_user.username or 'N/A'})\n"
                     f"🆔 User ID: `{tg_user.id}`\n"
                     f"📱 XL Number: `{user['number']}`\n"
-                    f"🏷️ Package: `{title}`\n"
+                    f"🏷️ Package: `{package_title if package_title else 'Unknown Package'}`\n"
                     f"💰 Price: `Rp {price:,}`\n"
                     f"💳 Method: `Balance`\n"
                     f"⚠️ Error: `{result.get('error', 'Unknown error')}`\n"
@@ -2523,12 +2423,12 @@ async def process_payment(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
             keyboard = [[InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
             
-            await query.edit_message_text(message, reply_markup=reply_markup, parse_mode='Markdown')
+            await query.message.reply_text(message, reply_markup=reply_markup, parse_mode='Markdown')
         elif payment_method == "QRIS":
             # Check if this is a family package and ask for value input
             if is_family_package(package_code):
                 # Ask user for value input
-                await query.edit_message_text(f"👨‍👩‍👧‍👦 Family Package detected.\n\nPackage price is Rp {price:,}.\nPlease enter the value you want to pay (or press 0 to use the original price):")
+                await query.message.reply_text(f"👨‍👩‍👧‍👦 Family Package detected.\n\nPackage price is Rp {price:,}.\nPlease enter the value you want to pay (or press 0 to use the original price):")
                 # Store package info and payment method in context for later use
                 context.user_data['pending_payment'] = {
                     'package': package,
@@ -2538,7 +2438,7 @@ async def process_payment(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
                 }
                 return
             
-            await query.edit_message_text("📱 Generating QRIS payment code...")
+            await query.message.reply_text("📱 Generating QRIS payment code...")
             
             # Get payment methods
             payment_methods_data = get_payment_methods(
@@ -2549,7 +2449,7 @@ async def process_payment(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
             )
             
             if not payment_methods_data:
-                await query.edit_message_text("❌ Failed to fetch payment methods.\n\n"
+                await query.message.reply_text("❌ Failed to fetch payment methods.\n\n"
                                              "Possible reasons:\n"
                                              "• Network connectivity issues\n"
                                              "• Package no longer available\n"
@@ -2575,7 +2475,7 @@ async def process_payment(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
             if not transaction_id:
                 error_message = "Failed to create QRIS transaction"
                 message = format_api_error(error_message, title, price, "QRIS")
-                await query.edit_message_text(message)
+                await query.message.reply_text(message)
                 return
                 
             # Get QRIS code
@@ -2583,10 +2483,10 @@ async def process_payment(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
             if not qris_code:
                 error_message = "Failed to get QRIS code"
                 message = format_api_error(error_message, title, price, "QRIS")
-                await query.edit_message_text(message)
+                await query.message.reply_text(message)
                 return
                 message += f"💡 Please try again later or use a different payment method."
-                await query.edit_message_text(message)
+                await query.message.reply_text(message)
                 return
                 
             # Create QR code image
@@ -2638,18 +2538,18 @@ async def process_payment(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
             keyboard = [[InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
             
-            await query.edit_message_text(message, reply_markup=reply_markup, parse_mode='Markdown')
+            await query.message.reply_text(message, reply_markup=reply_markup, parse_mode='Markdown')
     except ValueError as e:
         # Handle rate limit errors
         error_msg = str(e)
         if "too many requests" in error_msg.lower():
-            await query.edit_message_text("⏰ Too many requests. Please wait a moment and try again.")
+            await query.message.reply_text("⏰ Too many requests. Please wait a moment and try again.")
         else:
             logger.error("Error processing payment: %s", e, exc_info=True)
-            await query.edit_message_text("❌ Error processing payment.\n\n")
+            await query.message.reply_text("❌ Error processing payment.\n\n")
     except Exception as e:
         logger.error("Error processing payment: %s", e, exc_info=True)
-        await query.edit_message_text("❌ Error processing payment.\n\n")
+        await query.message.reply_text("❌ Error processing payment.\n\n")
 
 async def process_family_payment(update: Update, context: ContextTypes.DEFAULT_TYPE, package, payment_method, amount: int) -> None:
     """Process family package payment with custom amount."""
@@ -2719,7 +2619,7 @@ async def process_family_payment(update: Update, context: ContextTypes.DEFAULT_T
                     f"👤 User: {tg_user.first_name} (@{tg_user.username or 'N/A'})\n"
                     f"🆔 User ID: `{tg_user.id}`\n"
                     f"📱 XL Number: `{user['number']}`\n"
-                    f"🏷️ Package: `{title}`\n"
+                    f"🏷️ Package: `{package_title if package_title else 'Unknown Package'}`\n"
                     f"💰 Original Price: `Rp {original_price:,}`\n"
                     f"💵 Paid: `Rp {amount:,}`\n"
                     f"💳 Method: `Balance`\n"
@@ -2871,29 +2771,87 @@ async def logout(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = auth_instance.get_active_user(context)
     if user:
         auth_instance.remove_active_user(context)
-        response_text = "✅ You have been logged out."
+        await update.message.reply_text("✅ You have been logged out.")
     else:
-        response_text = "❌ You are not logged in."
+        await update.message.reply_text("❌ You are not logged in.")
     
     # Show login option
-    keyboard = [[InlineKeyboardButton("📱 Login", callback_data="login")]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    # Check if this is a callback query or regular message
-    if update.callback_query:
-        # For callback queries, we need to answer the query and then send a new message
-        await update.callback_query.answer()
-        await update.callback_query.edit_message_text(response_text)
-        # Send the login option as a new message
-        if update.callback_query.message:
-            await update.callback_query.message.reply_text("Use the login button to log in again.", reply_markup=reply_markup)
-        else:
-            # Fallback if message is not available
-            await update.effective_message.reply_text("Use the login button to log in again.", reply_markup=reply_markup)
-    else:
-        await update.message.reply_text(response_text)
-        await update.message.reply_text("Use the login button to log in again.", reply_markup=reply_markup)
+    keyboard = [[KeyboardButton("📱 Login")]]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    await update.message.reply_text("Use the login button to log in again.", reply_markup=reply_markup)
 
+async def show_vpn_info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show VPN information and purchase options."""
+    try:
+        # VPN information directly in code instead of reading from vpn.md
+        message = "🌐 *DOYSTORE VPN*\n\n"
+        message += "*Donate for bot development by purchasing premium VPN at @doystorevpn*\n\n"
+        message += "*Available:*\n\n"
+        message += "Premium VPN for SSH/VMESS/VLESS/TROJAN protocols\n\n"
+        message += "*Servers:*\n\n"
+        message += "🇮🇩 ID Infinys - Rp 10,000\n"
+        message += "🇮🇩 ID Biznet - Rp 10,000\n"
+        message += "🇮🇩 ID Atha - Rp 10,000\n"
+        message += "🇮🇩 ID Nusa - Rp 10,000\n"
+        message += "🇸🇬 SG Tencent - Rp 9,000\n\n"
+        message += "*Note:*\n\n"
+        message += "STB-specific servers cost an additional Rp 2,000 ‼️\n\n"
+        message += "💰 *Payment via QRIS/Dana/Shopeepay*\n\n"
+        message += "To purchase a Premium VPN, please contact: @doystorevpn"
+        
+        await update.message.reply_text(message, parse_mode='Markdown')
+    except Exception as e:
+        logger.error("Error showing VPN info: %s", e)
+        await update.message.reply_text("❌ Error fetching VPN information.")
+
+async def show_donation_info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show donation information with QRIS image."""
+    try:
+        message = "💝 *Donation*\n\n"
+        message += "Thank you for supporting the development of this bot!\n\n"
+        message += "Scan the QRIS code below to make a donation:"
+        
+        # Send the QRIS image
+        await update.message.reply_photo(
+            photo="https://i.imgur.com/CftHGbi.jpeg",
+            caption="Terima kasih sudah berdonasi untuk pengembangan bot! 🙏"
+        )
+    except Exception as e:
+        logger.error("Error showing donation info: %s", e)
+        await update.message.reply_text("❌ Error showing donation information.\n\nTerima kasih sudah berdonasi untuk pengembangan bot! 🙏")
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send a message when the command /help is issued."""
+    message = "ℹ️ *DoyDor XL Bot Help*\n\n"
+    message += "I can help you manage your XL account directly from Telegram!\n\n"
+    message += "📱 *Available Commands:*\n"
+    message += "/start - Start the bot\n"
+    message += "/login - Login to your XL account\n"
+    message += "/help - Show this help message\n\n"
+    message += "💡 *How to Use:*\n"
+    message += "1. Click '📱 Login' or use /login\n"
+    message += "2. Enter your XL number\n"
+    message += "3. Enter the OTP sent to your phone\n"
+    message += "4. Use the menu buttons to navigate\n\n"
+    message += "💳 *Features:*\n"
+    message += "• Check account balance\n"
+    message += "• View package information\n"
+    message += "• Buy packages with QRIS or balance\n"
+    message += "• Logout when finished\n\n"
+    message += "🔒 *Security:*\n"
+    message += "Your credentials are stored securely on your device."
+    
+    # Add admin commands if user is admin
+    admin_id = os.getenv("ADMIN_ID")
+    if admin_id and str(update.effective_user.id) == admin_id:
+        message += "\n\n🛠️ *Admin Commands:*\n"
+        message += "/post <message> - Send message to all users\n"
+        message += "/users - Show user statistics\n"
+        message += "/test_error - Test error reporting"
+    
+    await update.message.reply_text(message, parse_mode='Markdown')
+
+async def post_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Admin-only command to send messages to all subscribers."""
     # Check if user is admin
     admin_id = os.getenv("ADMIN_ID")
@@ -3023,8 +2981,7 @@ def main() -> None:
     # Add conversation handler for login
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("login", login_start), 
-                      MessageHandler(filters.Regex("^📱 Login$"), login_start),
-                      CallbackQueryHandler(login_start, pattern="^login$")],
+                      MessageHandler(filters.Regex("^📱 Login$"), login_start)],
         states={
             PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, phone_received)],
             OTP: [MessageHandler(filters.TEXT & ~filters.COMMAND, otp_received)],
@@ -3034,9 +2991,10 @@ def main() -> None:
 
     # Add handlers
     application_instance.add_handler(CommandHandler("start", start))
+    application_instance.add_handler(CommandHandler("help", help_command))
+    application_instance.add_handler(CommandHandler("post", post_command))
     application_instance.add_handler(CommandHandler("users", users_command))
     application_instance.add_handler(CommandHandler("test_error", test_error_command))
-    application_instance.add_handler(CommandHandler("menu", show_main_menu))
     application_instance.add_handler(conv_handler)
     application_instance.add_handler(CallbackQueryHandler(button_handler))
     application_instance.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_menu_selection))
