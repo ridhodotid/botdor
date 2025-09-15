@@ -2856,7 +2856,7 @@ async def post_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     # Check if user is admin
     admin_id = os.getenv("ADMIN_ID")
     if not admin_id or str(update.effective_user.id) != admin_id:
-        await update.message.reply_text("❌ You don't have permission to use this command.")
+        await update.message.reply_text("❌ You don't have permission to use this command. Please contact Admin.")
         return
     
     # Check if message text is provided
@@ -3005,3 +3005,4 @@ def main() -> None:
 if __name__ == "__main__":
     # Start the bot
     main()
+
